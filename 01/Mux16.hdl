@@ -15,4 +15,30 @@ CHIP Mux16 {
 
     PARTS:
     // Put your code here:
+    // Using And16 to create 16 bit version of sel
+    And16(
+        a[0]=sel,
+        a[1]=sel,
+        a[2]=sel,
+        a[3]=sel,
+        a[4]=sel,
+        a[5]=sel,
+        a[6]=sel,
+        a[7]=sel,
+        a[8]=sel,
+        a[9]=sel,
+        a[10]=sel,
+        a[11]=sel,
+        a[12]=sel,
+        a[13]=sel,
+        a[14]=sel,
+        a[15]=sel,
+        b=true,
+        out=sel16
+    );
+
+    Not16(in=sel16, out=notSel16);
+    And16(a=a, b=notSel16, out=aAndNotSel16);
+    And16(a=sel16, b=b, out=bAndSel16);
+    Or16(a=aAndNotSel16, b=bAndSel16, out=out);
 }
