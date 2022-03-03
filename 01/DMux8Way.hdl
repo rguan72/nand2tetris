@@ -17,4 +17,14 @@ CHIP DMux8Way {
 
     PARTS:
     // Put your code here:
+    DMux4Way(in=in, sel=sel[0..1], a=inAorE, b=inBorF, c=inCorG, d=inDorH);
+    DMux(in=in, sel=sel[2], a=inAorBorCorD, b=inEorForGorH);
+    And(a=inAorE, b=inAorBorCorD, out=a);
+    And(a=inBorF, b=inAorBorCorD, out=b);
+    And(a=inCorG, b=inAorBorCorD, out=c);
+    And(a=inDorH, b=inAorBorCorD, out=d);
+    And(a=inAorE, b=inEorForGorH, out=e);
+    And(a=inBorF, b=inEorForGorH, out=f);
+    And(a=inCorG, b=inEorForGorH, out=g);
+    And(a=inDorH, b=inEorForGorH, out=h);
 }
