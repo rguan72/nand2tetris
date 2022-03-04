@@ -43,6 +43,7 @@ CHIP ALU {
 
     PARTS:
    // Put you code here:
+    // Arithmetic/Logic Output Bits
     Mux16(a=x, b=false, sel=zx, out=xAfterzx);
     Not16(in=xAfterzx, out=notxAfterzx);
     Mux16(a=xAfterzx, b=notxAfterzx, sel=nx, out=xAfterzxnx);
@@ -53,5 +54,11 @@ CHIP ALU {
     And16(a=xAfterzxnx, b=yAfterzyny, out=xAfterzxnxAndyAfterzyny);
     Mux16(a=xAfterzxnxAndyAfterzyny, b=xAfterzxnxPlusyAfterzyny, sel=f, out=outNotNegated);
     Not16(in=outNotNegated, out=outNegated);
-    Mux16(a=outNotNegated, b=outNegated, sel=no, out=out);
+    Mux16(a=outNotNegated, b=outNegated, sel=no, out=out, out[0..7]=outZeroToSeven, out[8..15]=outEightToFifteen, out[15]=ng);
+
+    // Control Bit zr
+    Or8Way(in=outZeroToSeven, out=outZeroToSevenAtLeastOne);
+    Or8Way(in=outEightToFifteen, out=outEightToFifteenAtLeastOne);
+    Or(a=outZeroToSevenAtLeastOne, b=outEightToFifteenAtLeastOne, out=outZeroToFifteenAtLeastOne);
+    Not(in=outZeroToFifteenAtLeastOne, out=zr);
 }
