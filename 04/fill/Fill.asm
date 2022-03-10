@@ -14,8 +14,24 @@
 // 256 rows, 512 columns
 // 256 rows, 512/16=32 words per row. 256*32=8192 words in screen (8192 * 16 pixels)
 
+(WHILELOOP)
     @i
     M=0 // i=0
+
+    // if(key pressed) R0 = 1 else R0 = 0
+    @KBD
+    D=M
+    @IFNOKEYPRESSED
+    D;JEQ
+
+    @R0
+    M=1 // R0 = 1
+    @LOOP
+    0;JMP
+
+(IFNOKEYPRESSED)
+    @R0
+    M=0 // R0 = 0
 
     // go to end if i >= 8192
 (LOOP)
@@ -26,6 +42,12 @@
     @END
     D;JGE 
 
+    // if R0 = 1 blacken screen else whiten
+    @R0
+    D=M
+    @ELSE
+    D;JEQ
+
     // M[screen + i] = -1
     @i
     D=M
@@ -33,6 +55,18 @@
     A=D+A
     M=-1
 
+    @ENDIF
+    0;JMP
+
+(ELSE)
+    // M[screen + i] = 0
+    @i
+    D=M
+    @SCREEN
+    A=D+A
+    M=0
+
+(ENDIF)
     // i++
     @i
     M=M+1
@@ -40,6 +74,7 @@
     @LOOP
     0;JMP
 
+    // go to top level while loop
 (END)
-    @END
+    @WHILELOOP
     0;JMP
