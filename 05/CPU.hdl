@@ -40,4 +40,33 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+
+    // A Register wiring
+    Not(in=instruction[15], out=AInstruction);
+    Mux16(a=instruction, b=ALUOutput, sel=instruction[15], out=leftMux16Output);
+    Or(a=AInstruction, b=instruction[5], out=storeARegister);
+    ARegister(in=leftMux16Output, load=storeARegister, out=ARegisterOutput, out[0..14]=addressM);
+
+    // D Register wiring
+    And(a=instruction[4], b=instruction[15], out=dstDAndNotAInstruction);
+    DRegister(in=ALUOutput, load=dstDAndNotAInstruction, out=DRegisterOutput);
+
+    // ALU wiring
+    Mux16(a=ARegisterOutput, b=inM, sel=instruction[12], out=rightMux16Output);
+    ALU(x=DRegisterOutput, y=rightMux16Output, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=outM, out=ALUOutput, zr=zrOutput, ng=ngOutput);
+
+    // PC wiring
+    And(a=ngOutput, b=instruction[2], out=negAndJumpIfNeg);
+    And(a=zrOutput, b=instruction[1], out=zeroAndJumpIfZero);
+    Or(a=zrOutput, b=ngOutput, out=outNotPositive);
+    Not(in=outNotPositive, out=outPositive);
+    And(a=outPositive, b=instruction[0], out=positiveAndJumpIfPositive);
+    Or(a=negAndJumpIfNeg, b=zeroAndJumpIfZero, out=twoCasesOfJump);
+    Or(a=twoCasesOfJump, b=positiveAndJumpIfPositive, out=shouldJump);
+    Not(in=shouldJump, out=shouldNotJump);
+    And(a=shouldJump, b=instruction[15], out=shouldJumpAndCInstruction);
+    PC(in=ARegisterOutput, load=shouldJumpAndCInstruction, inc=true, reset=reset, out[0..14]=pc); // reset and load already take precedence over inc
+
+    // writeM wiring
+    And(a=instruction[15], b=instruction[3], out=writeM);
 }
