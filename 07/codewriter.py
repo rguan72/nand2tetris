@@ -16,8 +16,14 @@ def writeCommand(command: parser.Command, ofstream: typing.TextIO) -> None:
         writePushPop(command, ofstream)
 
 def writeArithmetic(command: parser.Command, ofstream: typing.TextIO) -> None:
-    if command.arg1 == "add":
-        ofstream.writelines([
+    ofstream.writelines(arithmeticAssembly[command.arg1])
+
+def writePushPop(command: parser.Command, ofstream: typing.TextIO) -> None:
+    assemblyCode = pushPopAssembly[f"{command.commandType} {command.arg1}"](command.arg2)
+    ofstream.writelines(assemblyCode)
+
+arithmeticAssembly = {
+    "add": [
             "// add\n",
             "@SP\n",
             "M=M-1\n",
@@ -26,18 +32,18 @@ def writeArithmetic(command: parser.Command, ofstream: typing.TextIO) -> None:
             "@SP\n",
             "A=M-1\n",
             "M=M+D\n",      
-        ])
+        ],
+}
 
-def writePushPop(command: parser.Command, ofstream: typing.TextIO) -> None:
-    if command.commandType == parser.CommandType.C_PUSH:
-        if command.arg1 == "constant":
-            ofstream.writelines([
-                f"// push constant {command.arg2}\n",
-                f"@{command.arg2}\n",
-                "D=A\n"
-                "@SP\n",
-                "A=M\n",
-                f"M=D\n",
-                "@SP\n",
-                "M=M+1\n",
-            ])
+pushPopAssembly = {
+    "CommandType.C_PUSH constant": lambda arg2: [
+        f"// push constant {arg2}\n",
+        f"@{arg2}\n",
+        "D=A\n"
+        "@SP\n",
+        "A=M\n",
+        f"M=D\n",
+        "@SP\n",
+        "M=M+1\n",
+    ],
+}
