@@ -3,7 +3,10 @@ import typing
 
 import parser
 
-def codewrite(ifstream: typing.TextIO, ofstream: typing.TextIO) -> None:
+def codewrite(ifstream: typing.TextIO, ofstream: typing.TextIO, inputFileName: str) -> None:
+    global filename
+    filename = inputFileName
+    
     lines = ifstream.readlines()
     commands = parser.parse(lines)
     for i, command in enumerate(commands):
@@ -314,5 +317,24 @@ pushPopAssembly = {
         "    @R13\n",
         "    A=M\n",
         "    M=D\n",
+    ],
+    "CommandType.C_PUSH static": lambda arg2: [
+        f"// push static {arg2}\n",
+        f"    @{filename}.{arg2}\n",
+        "    D=M\n",
+        "    @SP\n",
+        "    A=M\n",
+        "    M=D\n",
+        "    @SP\n",
+        "    M=M+1\n",
+    ],
+    "CommandType.C_POP static": lambda arg2: [
+        f"// pop static {arg2}\n",
+        "    @SP\n",
+        "    M=M-1\n",
+        "    A=M\n",
+        "    D=M\n",
+        f"    @{filename}.{arg2}\n",
+        "     M=D\n",
     ],
 }
