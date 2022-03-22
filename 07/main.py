@@ -1,4 +1,9 @@
+import sys
+import os
 import codewriter
 
-with open("StackArithmetic/StackTest/StackTest.vm", "r") as ifstream, open("StackArithmetic/StackTest/StackTest.asm", "w") as ofstream:
+inputFile = sys.argv[1]
+inputFileName, _ = os.path.splitext(inputFile)
+outputFile = inputFileName + ".asm"
+with open(inputFile, "r") as ifstream, open(outputFile, "w") as ofstream:
     codewriter.codewrite(ifstream, ofstream)
