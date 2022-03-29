@@ -18,6 +18,8 @@ class CodeWriter:
             self.writeLabel(command)
         elif command.commandType == parser.CommandType.C_IF:
             self.writeIf(command)
+        elif command.commandType == parser.CommandType.C_GOTO:
+            self.writeGoto(command)
 
     def writeArithmetic(self, command: parser.Command, index: int) -> None:
         self.ofstream.writelines(self.arithmeticAssembly[command.arg1](index))
@@ -34,6 +36,14 @@ class CodeWriter:
 
     def writeIf(self, command: parser.Command) -> None:
         self.ofstream.writelines(self.ifAssembly(command.arg1))
+
+    def writeGoto(self, command: parser.Command) -> None:
+        assemblyCode = [
+            f"// goto {command.arg1}\n",
+            f"    @{self.makeLabel(command.arg1)}\n",
+            "    0;JMP\n",
+        ]
+        self.ofstream.writelines(assemblyCode)
 
     def makeLabel(self, labelName: str) -> str:
         return f"{self.inputFileName}.{labelName}"
