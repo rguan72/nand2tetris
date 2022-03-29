@@ -12,8 +12,12 @@ class CodeWriter:
     def writeCommand(self, command: parser.Command, index: int) -> None:
         if command.commandType == parser.CommandType.C_ARITHMETIC:
             self.writeArithmetic(command, index)
-        else:
+        elif command.commandType in [parser.CommandType.C_PUSH, parser.CommandType.C_POP]:
             self.writePushPop(command)
+        elif command.commandType == parser.CommandType.C_LABEL:
+            self.writeLabel(command)
+        elif command.commandType == parser.CommandType.C_IF:
+            self.writeIf(command)
 
     def writeArithmetic(self, command: parser.Command, index: int) -> None:
         self.ofstream.writelines(self.arithmeticAssembly[command.arg1](index))
@@ -21,6 +25,18 @@ class CodeWriter:
     def writePushPop(self, command: parser.Command) -> None:
         assemblyCode = self.pushPopAssembly[f"{command.commandType} {command.arg1}"](command.arg2)
         self.ofstream.writelines(assemblyCode)
+
+    def writeLabel(self, command: parser.Command) -> None:
+        assembyCode = [ 
+            f"({self.makeLabel(command.arg1)})\n",
+        ]
+        self.ofstream.writelines(assembyCode)
+
+    def writeIf(self, command: parser.Command) -> None:
+        self.ofstream.writelines(self.ifAssembly(command.arg1))
+
+    def makeLabel(self, labelName: str) -> str:
+        return f"{self.inputFileName}.{labelName}"
 
     def __init__(self, ifstream: typing.TextIO, ofstream: typing.TextIO, inputFileName: str) -> None:
         self.ifstream = ifstream
@@ -340,3 +356,13 @@ class CodeWriter:
                 "     M=D\n",
             ],
         }
+
+        self.ifAssembly = lambda arg1: [
+            f"// if-goto {arg1}\n",
+            "    @SP\n",
+            "    M=M-1\n",
+            "    A=M\n",
+            "    D=M\n",
+            f"    @{self.makeLabel(arg1)}\n",
+            "    D;JNE\n",
+        ]
