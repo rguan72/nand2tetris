@@ -108,7 +108,7 @@
     @R13
     A=M
     M=D
-(FibonacciSeries.MAIN_LOOP_START)
+(FibonacciSeries.$MAIN_LOOP_START)
 // push argument 0
     @ARG
     D=M
@@ -125,12 +125,12 @@
     M=M-1
     A=M
     D=M
-    @FibonacciSeries.COMPUTE_ELEMENT
+    @FibonacciSeries.$COMPUTE_ELEMENT
     D;JNE
 // goto END_PROGRAM
-    @FibonacciSeries.END_PROGRAM
+    @FibonacciSeries.$END_PROGRAM
     0;JMP
-(FibonacciSeries.COMPUTE_ELEMENT)
+(FibonacciSeries.$COMPUTE_ELEMENT)
 // push that 0
     @THAT
     D=M
@@ -258,6 +258,6 @@
     A=M
     M=D
 // goto MAIN_LOOP_START
-    @FibonacciSeries.MAIN_LOOP_START
+    @FibonacciSeries.$MAIN_LOOP_START
     0;JMP
-(FibonacciSeries.END_PROGRAM)
+(FibonacciSeries.$END_PROGRAM)

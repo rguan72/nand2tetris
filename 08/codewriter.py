@@ -6,20 +6,25 @@ class CodeWriter:
     def codewrite(self) -> None:        
         lines = self.ifstream.readlines()
         commands = parser.parse(lines)
+        outsideFunctionName = ""
         for i, command in enumerate(commands):
-            self.writeCommand(command, i)
+            if command.commandType == parser.CommandType.C_FUNCTION:
+                outsideFunctionName = command.arg1
+            elif command.commandType == parser.CommandType.C_RETURN:
+                outsideFunctionName = ""
+            self.writeCommand(command, i, outsideFunctionName)
 
-    def writeCommand(self, command: parser.Command, index: int) -> None:
+    def writeCommand(self, command: parser.Command, index: int, outsideFunctionName: str) -> None:
         if command.commandType == parser.CommandType.C_ARITHMETIC:
             self.writeArithmetic(command, index)
         elif command.commandType in [parser.CommandType.C_PUSH, parser.CommandType.C_POP]:
             self.writePushPop(command)
         elif command.commandType == parser.CommandType.C_LABEL:
-            self.writeLabel(command)
+            self.writeLabel(command, outsideFunctionName)
         elif command.commandType == parser.CommandType.C_IF:
-            self.writeIf(command)
+            self.writeIf(command, outsideFunctionName)
         elif command.commandType == parser.CommandType.C_GOTO:
-            self.writeGoto(command)
+            self.writeGoto(command, outsideFunctionName)
         elif command.commandType == parser.CommandType.C_FUNCTION:
             self.writeFunction(command)
         elif command.commandType == parser.CommandType.C_RETURN:
@@ -32,19 +37,19 @@ class CodeWriter:
         assemblyCode = self.pushPopAssembly[f"{command.commandType} {command.arg1}"](command.arg2)
         self.ofstream.writelines(assemblyCode)
 
-    def writeLabel(self, command: parser.Command) -> None:
+    def writeLabel(self, command: parser.Command, outsideFunctionName: str) -> None:
         assembyCode = [ 
-            f"({self.makeLabel(command.arg1)})\n",
+            f"({self.makeLabel(command.arg1, outsideFunctionName)})\n",
         ]
         self.ofstream.writelines(assembyCode)
 
-    def writeIf(self, command: parser.Command) -> None:
-        self.ofstream.writelines(self.ifAssembly(command.arg1))
+    def writeIf(self, command: parser.Command, outsideFunctionName: str) -> None:
+        self.ofstream.writelines(self.ifAssembly(command.arg1, outsideFunctionName))
 
-    def writeGoto(self, command: parser.Command) -> None:
+    def writeGoto(self, command: parser.Command, outsideFunctionName: str) -> None:
         assemblyCode = [
             f"// goto {command.arg1}\n",
-            f"    @{self.makeLabel(command.arg1)}\n",
+            f"    @{self.makeLabel(command.arg1, outsideFunctionName)}\n",
             "    0;JMP\n",
         ]
         self.ofstream.writelines(assemblyCode)
@@ -56,8 +61,8 @@ class CodeWriter:
     def writeReturn(self) -> None:
         self.ofstream.writelines(self.returnAssembly)
 
-    def makeLabel(self, labelName: str) -> str:
-        return f"{self.inputFileName}${labelName}"
+    def makeLabel(self, labelName: str, outsideFunctionName: str) -> str:
+        return f"{self.inputFileName}.{outsideFunctionName}${labelName}"
 
     def __init__(self, ifstream: typing.TextIO, ofstream: typing.TextIO, inputFileName: str) -> None:
         self.ifstream = ifstream
@@ -378,13 +383,13 @@ class CodeWriter:
             ],
         }
 
-        self.ifAssembly = lambda arg1: [
+        self.ifAssembly = lambda arg1, outsideFunctionName: [
             f"// if-goto {arg1}\n",
             "    @SP\n",
             "    M=M-1\n",
             "    A=M\n",
             "    D=M\n",
-            f"    @{self.makeLabel(arg1)}\n",
+            f"    @{self.makeLabel(arg1, outsideFunctionName)}\n",
             "    D;JNE\n",
         ]
 
