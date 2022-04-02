@@ -20,6 +20,10 @@ class CodeWriter:
             self.writeIf(command)
         elif command.commandType == parser.CommandType.C_GOTO:
             self.writeGoto(command)
+        elif command.commandType == parser.CommandType.C_FUNCTION:
+            self.writeFunction(command)
+        elif command.commandType == parser.CommandType.C_RETURN:
+            self.writeReturn()
 
     def writeArithmetic(self, command: parser.Command, index: int) -> None:
         self.ofstream.writelines(self.arithmeticAssembly[command.arg1](index))
@@ -45,8 +49,15 @@ class CodeWriter:
         ]
         self.ofstream.writelines(assemblyCode)
 
+    def writeFunction(self, command: parser.Command) -> None:
+        assemblyCode = self.functionAssembly(command.arg1, command.arg2)
+        self.ofstream.writelines(assemblyCode)
+
+    def writeReturn(self) -> None:
+        self.ofstream.writelines(self.returnAssembly)
+
     def makeLabel(self, labelName: str) -> str:
-        return f"{self.inputFileName}.{labelName}"
+        return f"{self.inputFileName}${labelName}"
 
     def __init__(self, ifstream: typing.TextIO, ofstream: typing.TextIO, inputFileName: str) -> None:
         self.ifstream = ifstream
@@ -375,4 +386,74 @@ class CodeWriter:
             "    D=M\n",
             f"    @{self.makeLabel(arg1)}\n",
             "    D;JNE\n",
+        ]
+
+        self.functionAssembly = lambda arg1, arg2: [
+            f"// function {arg1} {arg2}\n",
+            f"    ({arg1})\n",
+            f"    @{arg2}\n",
+            "    D=A+1\n",
+            f"    ({arg1}$internalLabel$loop)\n",
+            "    @SP\n",
+            "    A=M\n",
+            "    M=0\n",
+            "    @SP\n",
+            "    M=M+1\n",
+            "    D=D-1\n",
+            f"    @{arg1}$internalLabel$loop\n",
+            "    D;JNE\n",
+        ]
+
+        self.returnAssembly = [
+            "// return\n",
+            "    @LCL\n",
+            "    D=M\n",
+            "    @R13\n",
+            "    M=D\n",
+            "    @SP\n",
+            "    A=M-1\n",
+            "    D=M\n",
+            "    @ARG\n",
+            "    A=M\n",
+            "    M=D\n",
+            "    @ARG\n",
+            "    D=M+1\n",
+            "    @SP\n",
+            "    M=D\n",
+            "    @LCL\n",
+            "    A=M-1\n",
+            "    D=M\n",
+            "    @THAT\n",
+            "    M=D\n",
+            "    @LCL\n",
+            "    D=M\n",
+            "    @2\n",
+            "    D=D-A\n",
+            "    A=D\n",
+            "    D=M\n",
+            "    @THIS\n",
+            "    M=D\n",
+            "    @LCL\n",
+            "    D=M\n",
+            "    @3\n",
+            "    D=D-A\n",
+            "    A=D\n",
+            "    D=M\n",
+            "    @ARG\n",
+            "    M=D\n",
+            "    @LCL\n",
+            "    D=M\n",
+            "    @4\n",
+            "    D=D-A\n",
+            "    A=D\n",
+            "    D=M\n",
+            "    @LCL\n",
+            "    M=D\n",
+            "    @R13\n",
+            "    D=M\n",
+            "    @5\n",
+            "    D=D-A\n",
+            "    A=D\n",
+            "    A=M\n",
+            "    0;JMP\n",
         ]
