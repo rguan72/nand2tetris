@@ -1,17 +1,30 @@
+import os
+import pathlib
 import typing
 
 import parser
 
 class CodeWriter:
-    def codewrite(self) -> None:        
-        lines = self.ifstream.readlines()
+    def codewrite(self) -> None:
+        self.writeBootstrap()
+        if os.path.isfile(self.inputName):
+            with open(self.inputName, "r") as ifstream:
+                self.codewriteFile(ifstream)
+        else:
+            for filename in os.listdir(self.inputName):
+                if pathlib.Path(filename).suffix == ".vm":
+                    filenameName, _ = os.path.splitext(filename)
+                    self.filename = filenameName
+                    with open(os.path.join(self.inputName, filename), "r") as ifstream:
+                        self.codewriteFile(ifstream)
+
+    def codewriteFile(self, ifstream) -> None:
+        lines = ifstream.readlines()
         commands = parser.parse(lines)
         outsideFunctionName = ""
         for i, command in enumerate(commands):
             if command.commandType == parser.CommandType.C_FUNCTION:
                 outsideFunctionName = command.arg1
-            elif command.commandType == parser.CommandType.C_RETURN:
-                outsideFunctionName = ""
             self.writeCommand(command, i, outsideFunctionName)
 
     def writeCommand(self, command: parser.Command, index: int, outsideFunctionName: str) -> None:
@@ -29,6 +42,8 @@ class CodeWriter:
             self.writeFunction(command)
         elif command.commandType == parser.CommandType.C_RETURN:
             self.writeReturn()
+        elif command.commandType == parser.CommandType.C_CALL:
+            self.writeCall(command, index)
 
     def writeArithmetic(self, command: parser.Command, index: int) -> None:
         self.ofstream.writelines(self.arithmeticAssembly[command.arg1](index))
@@ -61,13 +76,28 @@ class CodeWriter:
     def writeReturn(self) -> None:
         self.ofstream.writelines(self.returnAssembly)
 
-    def makeLabel(self, labelName: str, outsideFunctionName: str) -> str:
-        return f"{self.inputFileName}.{outsideFunctionName}${labelName}"
+    def writeCall(self, command: parser.Command, index: int) -> None:
+        assemblyCode = self.callAssembly(command.arg1, command.arg2, index)
+        self.ofstream.writelines(assemblyCode)
 
-    def __init__(self, ifstream: typing.TextIO, ofstream: typing.TextIO, inputFileName: str) -> None:
-        self.ifstream = ifstream
+    def writeBootstrap(self) -> None:
+        bootstrapAssembly = [
+            "// bootstrap\n"
+            "    @261\n",
+            "    D=A\n",
+            "    @SP\n",
+            "    M=D\n",
+            "    @Sys.init\n",
+            "    0;JMP\n",
+        ]
+        self.ofstream.writelines(bootstrapAssembly)
+
+    def makeLabel(self, labelName: str, outsideFunctionName: str) -> str:
+        return f"{self.filename}.{outsideFunctionName}${labelName}"
+
+    def __init__(self, ofstream: typing.TextIO, inputName: str) -> None:
         self.ofstream = ofstream
-        self.inputFileName = inputFileName
+        self.inputName = inputName
 
         self.arithmeticAssembly = {
             "add": lambda _: [
@@ -395,18 +425,21 @@ class CodeWriter:
 
         self.functionAssembly = lambda arg1, arg2: [
             f"// function {arg1} {arg2}\n",
-            f"    ({arg1})\n",
+            f"({arg1})\n",
             f"    @{arg2}\n",
-            "    D=A+1\n",
-            f"    ({arg1}$internalLabel$loop)\n",
+            "    D=A\n",
+            f"({arg1}$internalLabel$loop)\n",
+            f"    @{arg1}$internalLabel$end\n",
+            "    D;JEQ\n",
             "    @SP\n",
             "    A=M\n",
             "    M=0\n",
             "    @SP\n",
             "    M=M+1\n",
-            "    D=D-1\n",
+            "    D=D-1\n"
             f"    @{arg1}$internalLabel$loop\n",
-            "    D;JNE\n",
+            "    0;JMP\n",
+            f"({arg1}$internalLabel$end)\n",
         ]
 
         self.returnAssembly = [
@@ -461,4 +494,58 @@ class CodeWriter:
             "    A=D\n",
             "    A=M\n",
             "    0;JMP\n",
+        ]
+
+        self.callAssembly = lambda arg1, arg2, index: [
+            f"// call {arg1} {arg2}\n",
+            f"    @{arg1}$ret.{index}\n",
+            "    D=A\n",
+            "    @SP\n",
+            "    A=M\n",
+            "    M=D\n",
+            "    @SP\n",
+            "    M=M+1\n",
+            "    @LCL\n",
+            "    D=M\n",
+            "    @SP\n",
+            "    A=M\n",
+            "    M=D\n",
+            "    @SP\n",
+            "    M=M+1\n",
+            "    @ARG\n",
+            "    D=M\n",
+            "    @SP\n",
+            "    A=M\n",
+            "    M=D\n",
+            "    @SP\n",
+            "    M=M+1\n",
+            "    @THIS\n",
+            "    D=M\n",
+            "    @SP\n",
+            "    A=M\n",
+            "    M=D\n",
+            "    @SP\n",
+            "    M=M+1\n",
+            "    @THAT\n",
+            "    D=M\n",
+            "    @SP\n",
+            "    A=M\n",
+            "    M=D\n",
+            "    @SP\n",
+            "    M=M+1\n",
+            "    @SP\n",
+            "    D=M\n",
+            "    @5\n",
+            "    D=D-A\n",
+            f"    @{arg2}\n",
+            "    D=D-A\n",
+            "    @ARG\n",
+            "    M=D\n",
+            "    @SP\n",
+            "    D=M\n",
+            "    @LCL\n",
+            "    M=D\n",
+            f"    @{arg1}\n",
+            "    0;JMP\n",
+            f"({arg1}$ret.{index})\n",
         ]

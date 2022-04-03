@@ -7,7 +7,10 @@ inputFileName, _ = os.path.splitext(inputFile)
 if len(sys.argv) > 2:
     outputFile = sys.argv[2]
 else:
-    outputFile = inputFileName + ".asm"
-with open(inputFile, "r") as ifstream, open(outputFile, "w") as ofstream:
-    myCodewriter = codewriter.CodeWriter(ifstream, ofstream, os.path.basename(inputFileName))
+    if os.path.isfile(inputFile):
+        outputFile = inputFileName + ".asm"
+    else:
+        outputFile = os.path.join(inputFileName, os.path.basename(inputFileName) + ".asm")
+with open(outputFile, "w") as ofstream:
+    myCodewriter = codewriter.CodeWriter(ofstream, inputFile)
     myCodewriter.codewrite()
