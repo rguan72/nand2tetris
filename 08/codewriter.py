@@ -95,6 +95,9 @@ class CodeWriter:
     def makeLabel(self, labelName: str, outsideFunctionName: str) -> str:
         return f"{self.filename}.{outsideFunctionName}${labelName}"
 
+    def sanitizedInputName(self) -> str:
+        return self.inputName.replace("/", ".")
+
     def __init__(self, ofstream: typing.TextIO, inputName: str) -> None:
         self.ofstream = ofstream
         self.inputName = inputName
@@ -394,7 +397,7 @@ class CodeWriter:
             ],
             "CommandType.C_PUSH static": lambda arg2: [
                 f"// push static {arg2}\n",
-                f"    @{self.inputFileName}.{arg2}\n",
+                f"    @{self.sanitizedInputName()}.{arg2}\n",
                 "    D=M\n",
                 "    @SP\n",
                 "    A=M\n",
@@ -402,14 +405,14 @@ class CodeWriter:
                 "    @SP\n",
                 "    M=M+1\n",
             ],
-            "CommandType.C_POP static": lambda arg2: [
+            "CommandType.C_P OP static": lambda arg2: [
                 f"// pop static {arg2}\n",
                 "    @SP\n",
                 "    M=M-1\n",
                 "    A=M\n",
                 "    D=M\n",
-                f"    @{self.inputFileName}.{arg2}\n",
-                "     M=D\n",
+                f"    @{self.sanitizedInputName()}.{arg2}\n",
+                "    M=D\n",
             ],
         }
 
