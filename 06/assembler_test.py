@@ -17,6 +17,15 @@ class TestAssembler(unittest.TestCase):
     def test_rectL(self):
         self.helper_test_file_equality("rect/RectL.asm")
 
+    def test_max(self):
+        self.helper_test_file_equality("max/Max.asm")
+
+    def test_pong(self):
+        self.helper_test_file_equality("pong/Pong.asm")
+
+    def test_rect(self):
+        self.helper_test_file_equality("rect/Rect.asm")
+
     def helper_test_file_equality(self, filename: str):
         filenameBase, _ = os.path.splitext(filename)
         if os.path.exists(f"{filenameBase}.hack"): os.remove(f"{filenameBase}.hack")

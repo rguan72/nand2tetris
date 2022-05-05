@@ -1,6 +1,11 @@
 import os
 import sys 
 
+class SymbolTable:
+    def __init__(self):
+        self.table = {}
+        self.numVars = 0
+
 def assemble(filename):
     inputAssembly = getInputAssembly(filename)
     machineCode = translateAssembly(inputAssembly)
@@ -12,13 +17,11 @@ def getInputAssembly(filename: str) -> list[str]:
 
 def translateAssembly(inputAssembly: list[str]) -> list[str]:
     symbolTable = initializeSymbolTable()
+    symbolTable = addLabels(symbolTable, inputAssembly)
     outputMachineCode = []
-    linesOfRealCode = 0
     for line in inputAssembly:
         if isRealCode(line):
-            outputMachineCode.append(translateLine(line))
-            linesOfRealCode += 1
-
+            outputMachineCode.append(translateLine(line, symbolTable))
     return outputMachineCode
 
 def writeOutput(machineCode: list[str], filename: str) -> None:
@@ -26,8 +29,9 @@ def writeOutput(machineCode: list[str], filename: str) -> None:
     with open(f"{filenameBase}.hack", "w") as ofstream:
         ofstream.writelines([f"{line}\n" for line in machineCode])
 
-def initializeSymbolTable():
-    symbolTable = {
+def initializeSymbolTable() -> SymbolTable:
+    symbolTable = SymbolTable()
+    table = {
         "SCREEN": 16384,
         "KBD": 24576,
         "SP": 0,
@@ -37,22 +41,57 @@ def initializeSymbolTable():
         "THAT": 4,        
     }
     for i in range(16):
-        symbolTable[f"R{i}"] = i
+        table[f"R{i}"] = i
+    symbolTable.table = table
+    return symbolTable
+
+def addLabels(symbolTable: SymbolTable, inputAssembly):
+    linesOfRealCode = 0
+    for line in inputAssembly:
+        if isRealCode(line):
+            linesOfRealCode += 1
+        elif isLabel(line):
+            symbolTable.table[getLabel(line)] = linesOfRealCode
+    return symbolTable
 
 def isRealCode(line: str):
-    return len(line.strip()) > 0 and line.strip()[0:2] != "//"
+    return len(line.strip()) > 0 and line.strip()[0:2] != "//" and line.strip()[0] != "("
 
-def translateLine(line: str) -> str:
-    proccessed = line.strip()
+def translateLine(line: str, symbolTable: SymbolTable) -> str:
+    proccessed = cleanupLine(line)
     if isAInstruction(proccessed):
-        # translate symbol to proper value from symbol table if necessary
-        return f"0{padZeros(toBinary(proccessed[1:]))}"
-    else:
+        instructionValueOrSymbol = proccessed[1:]
+        if not instructionValueOrSymbol.isnumeric():
+            if instructionValueOrSymbol in symbolTable.table:
+                instructionValue = symbolTable.table[instructionValueOrSymbol]
+            else:
+                variableBaseAddress = 16
+                instructionValue = variableBaseAddress + symbolTable.numVars
+                symbolTable.numVars += 1
+                symbolTable.table[instructionValueOrSymbol] = instructionValue
+        else:
+            instructionValue = instructionValueOrSymbol
+        return f"0{padZeros(toBinary(instructionValue))}"
+    elif isCInstruction(proccessed):
         dest, comp, jump = parseCInstruction(proccessed)
         return translateCInstruction(dest, comp, jump)
 
+def cleanupLine(line: str) -> str:
+    if "//" in line:
+        line, _ = line.split("//")
+    return line.strip()
+
+def isLabel(line: str) -> bool:
+    return len(line.strip()) > 0 and line.strip()[0] == "("
+
+def getLabel(line: str) -> bool:
+    return line.strip()[1:-1]
+
 def isAInstruction(line: str) -> bool:
     return line[0] == "@"
+
+def isCInstruction(line: str) -> bool:
+    return len(line) > 0 and not isLabel(line) and not isAInstruction(line)
 
 def padZeros(binary: int) -> str:
     return "0" * (15 - len(str(binary))) + str(binary)
